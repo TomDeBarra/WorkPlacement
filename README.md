@@ -10,12 +10,16 @@ Requirements: Docker Desktop
 How to run: 
 Open terminal/powershell and type
 
-"cd observability
-docker compose up -d --build"
+"cd observability" and
+"docker compose up -d --build"
 
 Type URL "http://localhost:3000" into browser, login to Granafa (name: admin, password: admin)
 Explore -> add Prometheus "http://Prometheus:9090", "http://tempo:3200", "http://loki:3100"
-Look at output in Prometheus, Tempo Loki
+
+Look at output in Prometheus, Tempo and Loki
+
 "Prometheus: worker_ticks_total"
+
 Loki: {job=~".+"} |= "Worker tick"
+
 Tempo: { resource.service.name = "demo-worker" }

@@ -18,7 +18,7 @@ Explore -> add Prometheus "http://Prometheus:9090", "http://tempo:3200", "http:/
 
 Look at output in Prometheus, Tempo and Loki
 
-"Prometheus: worker_ticks_total"
+Prometheus: worker_ticks_total
 
 Loki: {job=~".+"} |= "Worker tick"
 

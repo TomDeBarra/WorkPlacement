@@ -14,7 +14,7 @@ Open terminal/powershell and type
 "docker compose up -d --build"
 
 Type URL "http://localhost:3000" into browser, login to Granafa (name: admin, password: admin)
-Explore -> add Prometheus "http://Prometheus:9090", "http://tempo:3200", "http://loki:3100"
+Explore -> add Prometheus, Tempo and Loki "http://Prometheus:9090", "http://tempo:3200", "http://loki:3100"
 
 Look at output in Prometheus, Tempo and Loki
 

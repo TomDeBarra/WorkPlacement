@@ -2,6 +2,7 @@ namespace WorkPlacementWorker;
 
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using System.Net.Http;
 
     public class Worker : BackgroundService
     {
@@ -14,39 +15,85 @@ using System.Diagnostics.Metrics;
         private static readonly Counter<long> TickCounter = Meter.CreateCounter<long>("worker_ticks_total");
 
         private readonly ILogger<Worker> _logger;
-
-        public Worker(ILogger<Worker> logger)
+        private readonly IHttpClientFactory _httpClientFactory;
+    // NEW: one-off guard for tracer
+    private bool _oneOffTraceDone = false;
+        public Worker(ILogger<Worker> logger, IHttpClientFactory httpClientFactory)
         {
             _logger = logger;
+            _httpClientFactory = httpClientFactory;
         }
 
-    /* Original
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            while (!stoppingToken.IsCancellationRequested)
+            // NEW Run the demo trace once, then continue as normal
+            if (!_oneOffTraceDone)
             {
-                if (_logger.IsEnabled(LogLevel.Information))
+                _oneOffTraceDone = true;
+                await RunOneOffDemoTrace(stoppingToken);
+            }
+            while (!stoppingToken.IsCancellationRequested)
                 {
-                    _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
+                    using var activity = ActivitySource.StartActivity("TickWork");
+                    activity?.SetTag("demo.tag", "hello");
+
+                    _logger.LogInformation("Worker tick at {time}", DateTimeOffset.UtcNow);
+
+                    TickCounter.Add(1);
+
+                    await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
                 }
-                await Task.Delay(1000, stoppingToken);
-            }
         }
-    */
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    private async Task RunOneOffDemoTrace(CancellationToken ct)
+    {
+        // Parent span
+        using var trace = ActivitySource.StartActivity("OneOffDemoTrace", ActivityKind.Internal);
+        trace?.SetTag("demo.trace", "startup-three-part");
+
+        // Span 1: “prepare”
+        using (var span1 = ActivitySource.StartActivity("Step1_Prepare", ActivityKind.Internal))
         {
-            while (!stoppingToken.IsCancellationRequested)
+            span1?.SetTag("step", 1);
+            _logger.LogInformation("One-off trace: Step 1 prepare");
+            await Task.Delay(150, ct);
+        }
+
+        // Span 2: HTTP call (this will show as an HTTP client span too if you enabled AddHttpClientInstrumentation)
+        using (var span2 = ActivitySource.StartActivity("Step2_HTTP", ActivityKind.Client))
+        {
+            span2?.SetTag("step", 2);
+
+            try
             {
-                using var activity = ActivitySource.StartActivity("TickWork");
-                activity?.SetTag("demo.tag", "hello");
+                var client = _httpClientFactory.CreateClient();
 
-                _logger.LogInformation("Worker tick at {time}", DateTimeOffset.UtcNow);
+                // Use a simple GET endpoint (Google often blocks bots; Yahoo can too)
+                // This one is super reliable:
+                var url = "https://example.com";
 
-                TickCounter.Add(1);
+                _logger.LogInformation("One-off trace: Step 2 HTTP GET {url}", url);
 
-                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                using var resp = await client.GetAsync(url, ct);
+                span2?.SetTag("http.status_code", (int)resp.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                span2?.SetTag("error", true);
+                _logger.LogError(ex, "One-off trace: HTTP call failed");
             }
         }
+
+        // Span 3: “finalize”
+        using (var span3 = ActivitySource.StartActivity("Step3_Finalize", ActivityKind.Internal))
+        {
+            span3?.SetTag("step", 3);
+            _logger.LogInformation("One-off trace: Step 3 finalize");
+            await Task.Delay(100, ct);
+        }
+
+        _logger.LogInformation("One-off trace complete");
     }
+}
 

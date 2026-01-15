@@ -8,7 +8,7 @@ How to work:
 Requirements: Docker Desktop
 
 How to run: 
-Open terminal/powershell and type
+Open terminal/powershell, navigate to project directory and type
 
 "cd observability" and
 "docker compose up -d --build"

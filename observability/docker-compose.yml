@@ -10,6 +10,8 @@ services:
       - prometheus
       - tempo
       - loki
+    volumes:
+      - grafana_data:/var/lib/grafana
 
   prometheus:
     image: prom/prometheus:latest
@@ -17,6 +19,11 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
 
   tempo:
     image: grafana/tempo:latest
@@ -26,6 +33,7 @@ services:
       - "4319:4318"
     volumes:
       - ./tempo.yml:/etc/tempo.yml
+      - tempo_data:/var/tempo
     command:
       - "-config.file=/etc/tempo.yml"
 
@@ -33,7 +41,12 @@ services:
     image: grafana/loki:latest
     ports:
       - "3100:3100"
-
+    command:
+      - "-config.file=/etc/loki/loki.yml"
+    volumes:
+      - ./loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+      
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.96.0
     command:
@@ -50,3 +63,9 @@ services:
       - otel-collector
     environment:
       - DOTNET_ENVIRONMENT=Development
+
+volumes:
+  prometheus_data:
+  loki_data:
+  tempo_data:
+  grafana_data:

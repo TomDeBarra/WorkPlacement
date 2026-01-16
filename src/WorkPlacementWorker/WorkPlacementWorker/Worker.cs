@@ -10,12 +10,13 @@ using System.Net.Http;
         public const string ActivitySourceName = "demo-worker.activity";
         public const string MeterName = "demo-worker.meter";
 
-        private static readonly ActivitySource ActivitySource = new(ActivitySourceName);
-        private static readonly Meter Meter = new(MeterName);
-        private static readonly Counter<long> TickCounter = Meter.CreateCounter<long>("worker_ticks_total");
+        private static readonly ActivitySource ActivitySource = new(ActivitySourceName); // For tempo, activity source creates spans
+        private static readonly Meter Meter = new(MeterName); // Prometheus, metrics registry, doesn't create anything just holds metrics
+    private static readonly Counter<long> TickCounter = Meter.CreateCounter<long>("worker_ticks_total"); // Prometheus, counter metric, Prometheus scrapes this value 
 
-        private readonly ILogger<Worker> _logger;
-        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<Worker> _logger; // Loki 
+        private readonly IHttpClientFactory _httpClientFactory; // For one-off tracer to access internet 
+
     // NEW: one-off guard for tracer
     private bool _oneOffTraceDone = false;
         public Worker(ILogger<Worker> logger, IHttpClientFactory httpClientFactory)
@@ -24,7 +25,7 @@ using System.Net.Http;
             _httpClientFactory = httpClientFactory;
         }
 
-
+    // Main 5 second loop sending to Prometheus, Loki and Tempo
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             // NEW Run the demo trace once, then continue as normal
@@ -46,6 +47,7 @@ using System.Net.Http;
                 }
         }
 
+    // For 3 part one-off tracer
     private async Task RunOneOffDemoTrace(CancellationToken ct)
     {
         // Parent span

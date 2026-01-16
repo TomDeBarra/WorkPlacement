@@ -30,7 +30,7 @@ builder.Services.AddOpenTelemetry()
     .WithTracing(tracing =>
     {
         tracing
-            .AddSource(Worker.ActivitySourceName)
+            .AddSource(Worker.ActivitySourceName) // Activity source creates spans [for tracers]
             .AddHttpClientInstrumentation() // NEW tracer
             .AddOtlpExporter(otlp =>
             {
@@ -48,8 +48,6 @@ builder.Services.AddOpenTelemetry()
                 otlp.Endpoint = new Uri("http://otel-collector:4317");
             });
     });
-
-// New Tracer [Proper real tracer]
 
 builder.Services.AddHostedService<Worker>();
 var host = builder.Build();

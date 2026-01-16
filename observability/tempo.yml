@@ -26,3 +26,19 @@ storage:
 compactor:
   compaction:
     block_retention: 168h   # 7 days
+
+metrics_generator:
+  storage:
+    path: /var/tempo/generator/wal
+  ring:
+    kvstore:
+      store: inmemory
+  processor:
+    service_graphs:
+    span_metrics:
+
+overrides:
+  metrics_generator_processors:
+    - local-blocks
+    - service-graphs
+    - span-metrics
